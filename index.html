@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CatCut</title>
+    <style>
+        :root {
+            --bg-base: #0d1117;
+            --bg-surface: #161b22;
+            --bg-surface-hover: #1f242c;
+            --border: #30363d;
+            --border-hover: #8b949e;
+            --text-main: #c9d1d9;
+            --text-title: #f0f6fc;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --radius: 8px;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Layout */
+        main {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        section {
+            margin-bottom: 4rem;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-title);
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        /* Grid System */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            color: inherit;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            background: var(--bg-surface-hover);
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+        }
+
+        .image-wrapper {
+            position: relative;
+            width: 100%;
+            height: 170px;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.85;
+            transition: var(--transition);
+        }
+
+        .card:hover img {
+            opacity: 1;
+        }
+
+        .card-content {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-title);
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .card p {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex-grow: 1;
+        }
+
+        .card .meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+            margin-top: auto;
+        }
+
+        /* Loading States */
+        .loading {
+            grid-column: 1 / -1;
+            padding: 3rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+
+    <main>
+        <!-- News Section -->
+        <section>
+            <h2>Latest News</h2>
+            <div class="grid" id="news-container">
+                <div class="loading">Fetching...</div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Featured Projects</h2>
+            <div class="grid" id="featured-container">
+                <div class="loading">Loading...</div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        /* --- JAVASCRIPT --- */
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchNews();
+            fetchFeaturedProjects();
+        });
+
+        // Fetch News (Limit 3)
+        async function fetchNews() {
+            const container = document.getElementById('news-container');
+            try {
+                const response = await fetch('https://api.scratch.mit.edu/news?limit=3');
+                if (!response.ok) throw new Error('Failed to fetch news');
+                
+                const newsData = await response.json();
+                container.innerHTML = ''; 
+
+                newsData.forEach(item => {
+                    const date = new Date(item.stamp).toLocaleDateString(undefined, {
+                        month: 'short', day: 'numeric', year: 'numeric'
+                    });
+
+                    const card = document.createElement('a');
+                    card.href = item.url;
+                    card.target = '_blank';
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <div class="image-wrapper">
+                            <img src="${item.image}" alt="News Image" onerror="this.src='https://via.placeholder.com/300x170/161b22/30363d?text=No+Image'">
+                        </div>
+                        <div class="card-content">
+                            <h3>${item.headline}</h3>
+                            <p>${item.copy}</p>
+                            <div class="meta">${date}</div>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                container.innerHTML = `<div class="loading" style="color: #f85149; animation: none;">Error retrieving data: ${error.message}</div>`;
+                console.error(error);
+            }
+        }
+
+        // Fetch Featured Projects
+        async function fetchFeaturedProjects() {
+            const container = document.getElementById('featured-container');
+            try {
+                const response = await fetch('https://api.scratch.mit.edu/proxy/featured');
+                if (!response.ok) throw new Error('Failed to fetch featured projects');
+                
+                const data = await response.json();
+                container.innerHTML = ''; 
+
+                const featuredProjects = data.community_featured_projects;
+
+                if (!featuredProjects || featuredProjects.length === 0) {
+                    container.innerHTML = `<div class="loading" style="animation: none;">No featured endpoints available.</div>`;
+                    return;
+                }
+
+                featuredProjects.forEach(project => {
+                    const card = document.createElement('a');
+                    card.href = `project.html?${project.id}`;
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <div class="image-wrapper">
+                            <img src="${project.thumbnail_url}" alt="${project.title} Thumbnail">
+                        </div>
+                        <div class="card-content">
+                            <h3>${project.title}</h3>
+                            <div class="meta">By ${project.creator}</div>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                container.innerHTML = `<div class="loading" style="color: #f85149; animation: none;">Error retrieving endpoints: ${error.message}</div>`;
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
